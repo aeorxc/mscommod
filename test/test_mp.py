@@ -31,7 +31,5 @@ class TestMP(unittest.TestCase):
         self.assertEqual(res.loc[pd.to_datetime('2009-11-16'),'settlement_price(BRN_001_Month)'], 78.76)
 
 
-
-
 if __name__ == '__main__':
     unittest.main()

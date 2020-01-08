@@ -1,13 +1,11 @@
 import pandas as pd
 import io
-import json
 import requests
-import urllib.parse
+from functools import lru_cache
 import logging
 import datetime
 import re
 import os
-import numpy
 import xml.etree.ElementTree as ET
 from requests.auth import HTTPBasicAuth
 
@@ -37,10 +35,23 @@ def ts(symbol, feed, key='Symbol'):
     return df
 
 
-def feed(feed):
+@lru_cache(maxsize=None)
+def getFeed(feed):
     u = feed_url.format(feed)
     r = requests.get(u, auth=requests.auth.HTTPBasicAuth(mpUserName, mpPassword))
     d = pd.DataFrame(r.json())
+    df = d.apply(lambda x: pd.Series(x['fields']), 1)
+    df = df.rename(columns={'type':'fieldType'})
+    d = pd.merge(d, df, left_index=True, right_index=True)
+    return d
+
+
+@lru_cache(maxsize=None)
+def feedKey(feed):
+    df = getFeed(feed)
+    df = df[df['fieldType'] == 'k']
+    if len(df) == 1:
+        return df['fieldName'].iloc[0]
 
 
 def fwd(symbol, feed, contract='001_Month'):
@@ -85,37 +96,20 @@ def getSources(pattern='.*'):
     return list(filter(r.match, mpSources))
 
 
-def getFeeds(source, pattern='.*', type=0):
-    """
-    Returns an array of available feeds for a specific Marketplace Source.
-
-    :param source: The Marketplace souce
-    :param type: Optional, 0 = return all feeds, 1 = return Forward only, 2 = return Non-Forward only
-
-    :Example:
-    >>> getFeeds('ICE')    # returns all ICE feeds
-    ['Ice_Cot', 'Ice_ClearedPower', 'Ice_ClearedOil', ...
-
-    >>> getFeeds('ICE', 0) # returns all ICE feeds
-    ['Ice_Cot', 'Ice_ClearedPower', 'Ice_ClearedOil', ...
-
-    >>> getFeeds('ICE', 1) # returns only ICE feeds with Forward data.
-    ['Ice_ClearedPower', 'Ice_ClearedOil', 'Ice_ClearedGas', ...
-
-    >>> getFeeds('ICE', 2) # returns only ICE feeds no Forward data.
-    ['Ice_Cot', 'Ice_PowerIndices', 'Ice_GasIndices', ...
-
-    """
-    global mpUserName
-    global mpPassword
+@lru_cache(maxsize=None)
+def getFeeds(source, pattern='.*'):
     mpurl = "https://mp.morningstarcommodity.com/lds/users/" + mpUserName + "/feeds"
     # change the username and password here - must be in quotes
     r = requests.get(mpurl, auth=HTTPBasicAuth(mpUserName, mpPassword))
     df = pd.DataFrame(r.json())['name']
-    df.sort_values()
-    return df.values
+    val = list(df.sort_values())
+    val = [x for x in val if source in x]
+    regex = re.compile(pattern)
+    res = list(filter(regex.match, val))
+    return res
 
 
+@lru_cache(maxsize=None)
 def getCurveNames(feed):
     """
     Returns an array of curve names available for a feed
@@ -143,10 +137,7 @@ def getCurveNames(feed):
         return msg
 
 
-def extractValueColumnsNumber(s):
-    return s['keys'][0]['value']
-
-
+@lru_cache(maxsize=None)
 def getKeyNames(feed):
     """
     Returns an array of keys used in a feed
@@ -165,7 +156,8 @@ def getKeyNames(feed):
     allKeys = []
     if r.headers['content-type'] == 'application/json':
         df = pd.DataFrame(r.json())
-        df['key'] = df.apply(lambda x: extractValueColumnsNumber(x), 1)
+        df['key'] = df.apply(lambda x: x['keys'][0]['value'], 1)
+        df = df[df['desc'] != 'totalRecords']
         keys = list(df['key'].values)
         keys.sort()
         allKeys.append(keys)
@@ -210,6 +202,6 @@ def getColumns(feed):
 
 
 
-
 if __name__ == '__main__':
-    fwd('BRN', feed='ICE_EuroFutures_continuous')
+    # fwd('BRN', feed='ICE_EuroFutures_continuous')
+    getKeyNames('ICE_EuroFutures')
