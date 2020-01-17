@@ -54,8 +54,6 @@ def _symbolFeed(symbol):
     Given a symbol get the feed it could belong to
     """
 
-
-
     for x in symbolcache.c:
         if symbol in symbolcache.c[x]:
             return x
@@ -87,7 +85,7 @@ def getSymbol(symbol, clean=True):
 if __name__ == '__main__':
     # print(_symbolFeed('AAQZV00'))
     # print(getSymbol('AAQZV00'))
-    # print(allFeedSymbols('ICE'))
-    print(getSymbol('BRN10G'))
+    print(allFeedSymbols('Platts_RI'))
+    # print(getSymbol('BRN10G'))
 
 

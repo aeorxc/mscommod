@@ -9,10 +9,9 @@ class TestMP(unittest.TestCase):
         res = lim.getSymbol('AAQZV00', clean=False)
         self.assertIn('ask(AAQZV00)', res.columns)
 
-    # def test_getSymbol2(self):
-    #     res = lim.getSymbol('BRN')
-    #     self.assertIn('ask(AAQZV00)', res.columns)
-
+    def test_getSymbol2(self):
+        res = lim.getSymbol('PCAAS00')
+        self.assertIn('ask(PCAAS00)', res.columns)
 
 
 if __name__ == '__main__':
