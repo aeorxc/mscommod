@@ -1,13 +1,14 @@
 import pandas as pd
-import io
+import io, os
 import requests
-from functools import lru_cache
-import os
-from mscommod import symbolcache
 from requests.auth import HTTPBasicAuth
+from functools import lru_cache
+import logging
+from mscommod import symbolcache
+
 
 feed_url = 'https://mp.morningstarcommodity.com/lds/feeds/{}'
-ts_url = 'https://mp.morningstarcommodity.com/lds/feeds/{}/ts?{}={}'
+ts_url = 'https://mp.morningstarcommodity.com/lds/feeds/{}/ts'
 curve_url = 'https://mp.morningstarcommodity.com/lds/feeds/{}/curve?'
 feed_utl = 'https://mp.morningstarcommodity.com/lds/users/{}/feeds'
 search_url = "https://mp.morningstarcommodity.com/lds/search/v2/search"
@@ -25,15 +26,6 @@ headers_csv = {
 headers_json = {
     'Content-Type': 'application/json'
 }
-
-
-def url_to_dataframe(u, headers=headers_csv):
-    r = requests.get(u, auth=auth, headers=headers)
-    df = pd.read_csv(io.StringIO(r.text), index_col='Date')
-    df.index = pd.to_datetime(df.index)
-    df = df.sort_index()
-    df = df.dropna(how='all')
-    return df
 
 
 @lru_cache(maxsize=None)
@@ -63,6 +55,8 @@ def feedkey(feedname):
     df = df[df['fieldType'].str.lower() == 'k']
     if len(df) == 1:
         return df['fieldName'].iloc[0]
+    elif len(df) > 1: # for more than 1 key
+        return list(df[df['fieldType'].str.lower() == 'k']['fieldName'].values)
 
 
 @lru_cache(maxsize=None)
@@ -112,12 +106,24 @@ def _find_symbol_metadata(symbol, feedname=None, feedkeyname=None, inc_feeddata=
 
 def series(symbol, feedname=None, feedkeyname=None, column=None):
     feedname, feedkeyname = _find_symbol_metadata(symbol, feedname, feedkeyname)
-    u = ts_url.format(feedname, feedkeyname, symbol)
+    u = ts_url.format(feedname)
+    if isinstance(feedkeyname, str):
+        u = '{}?{}={}'.format(u, feedkeyname, symbol)
+    elif isinstance(feedkeyname, list):
+        u = '{}?{}'.format(u, symbol) # todo make a better extract of symbol components
     if column is not None:
         u = '{}&cols={}'.format(u, column)
 
-    df = url_to_dataframe(u)
-    return df
+    r = requests.get(u, auth=auth, headers=headers_csv)
+
+    if r.status_code == 200:
+        df = pd.read_csv(io.StringIO(r.text), index_col='Date')
+        df.index = pd.to_datetime(df.index)
+        df = df.sort_index()
+        df = df.dropna(how='all')
+        return df
+    else:
+        logging.warning(r.text)
 
 
 def query(querystr):

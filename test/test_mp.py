@@ -51,6 +51,10 @@ class TestMP(unittest.TestCase):
         res = mp.series('AAIBI00')
         self.assertEqual(res.loc[pd.to_datetime('2019-12-01'), 'close(AAIBI00)'], 713.65)
 
+    def test_getts4(self):
+        res = mp.series('Country=AT&Product=GASDIES&Flow=CLOSTLV&Unit=KBBL', feedname='Jodi_GlobalOil')
+        self.assertEqual(res.loc[pd.to_datetime('2019-01-01')].iloc[0], 7818.08)
+
     def test_getCurve(self):
         res = mp.curve('BRN', 'ICE_EuroFutures')
         self.assertEqual(res.columns[0], 'BRN')
@@ -58,6 +62,7 @@ class TestMP(unittest.TestCase):
         res = mp.curve('BRN')
         self.assertEqual(res.columns[0], 'BRN')
 
+    def test_getCurveHist(self):
         res = mp.curve('BRN', 'ICE_EuroFutures', curvedate='2020-01-02')
         self.assertEqual(res.columns[0], 'BRN')
         self.assertEqual(res['BRN']['2020-03-01'], 66.25)
