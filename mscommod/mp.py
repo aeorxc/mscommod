@@ -3,6 +3,7 @@ import io
 import requests
 from functools import lru_cache
 import os
+from mscommod import symbolcache
 from requests.auth import HTTPBasicAuth
 
 feed_url = 'https://mp.morningstarcommodity.com/lds/feeds/{}'
@@ -30,6 +31,8 @@ def url_to_dataframe(u, headers=headers_csv):
     r = requests.get(u, auth=auth, headers=headers)
     df = pd.read_csv(io.StringIO(r.text), index_col='Date')
     df.index = pd.to_datetime(df.index)
+    df = df.sort_index()
+    df = df.dropna(how='all')
     return df
 
 
@@ -83,6 +86,14 @@ def search(symbol):
 
 
 def _find_symbol_metadata(symbol, feedname=None, feedkeyname=None, inc_feeddata=False):
+    # check in symbolcache first
+    if feedname is None:
+        for feednamec in symbolcache.c:
+            if symbol in symbolcache.c[feednamec]:
+                feedname = feednamec
+                break
+
+    # if not in symbolcache then search
     if feedname is None:
         searchres = search(symbol)
         if isinstance(searchres, dict) and len(searchres['results']) >= 1:
@@ -99,9 +110,12 @@ def _find_symbol_metadata(symbol, feedname=None, feedkeyname=None, inc_feeddata=
     return feedname, feedkeyname
 
 
-def series(symbol, feedname=None, feedkeyname=None):
+def series(symbol, feedname=None, feedkeyname=None, column=None):
     feedname, feedkeyname = _find_symbol_metadata(symbol, feedname, feedkeyname)
     u = ts_url.format(feedname, feedkeyname, symbol)
+    if column is not None:
+        u = '{}&cols={}'.format(u, column)
+
     df = url_to_dataframe(u)
     return df
 
@@ -116,6 +130,10 @@ def query(querystr):
 
 def curve(symbol, feedname=None, feedkeyname=None, column='Settlement_Price', curvedate='today()'):
     feedname, feedkeyname = _find_symbol_metadata(symbol, feedname, feedkeyname)
+
+    if curvedate != 'today()':
+        curvedate = "'{}'".format(curvedate)
+
     q = """
         var $prod = morn.Product.create("{}", ["{}"], ["{}"]);
         var Source = forward_curve($prod, get_curve_date($prod, {}), "Month");

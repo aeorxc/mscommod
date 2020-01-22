@@ -39,6 +39,10 @@ class TestMP(unittest.TestCase):
         res = mp.series('BRN_001_Month',)# 'ICE_EuroFutures_continuous')
         self.assertEqual(res.loc[pd.to_datetime('2020-01-02'),'settlement_price(BRN_001_Month)'], 66.25)
 
+    def test_getts1b(self):
+        res = mp.series('BRN_001_Month', 'ICE_EuroFutures_continuous', column='settlement_price')
+        self.assertEqual(res.loc[pd.to_datetime('2020-01-02'),'settlement_price(BRN_001_Month)'], 66.25)
+
     def test_getts2(self):
         res = mp.series('PJABA00', 'Platts_EB', feedkeyname='Code')
         self.assertEqual(res.loc[pd.to_datetime('2019-11-04'),'close(PJABA00)'], 635.25)
@@ -56,7 +60,7 @@ class TestMP(unittest.TestCase):
 
         res = mp.curve('BRN', 'ICE_EuroFutures', curvedate='2020-01-02')
         self.assertEqual(res.columns[0], 'BRN')
-        self.assertEqual(res['BRN']['2020-03-01'], 65.20)
+        self.assertEqual(res['BRN']['2020-03-01'], 66.25)
 
 
 if __name__ == '__main__':
