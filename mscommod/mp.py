@@ -128,10 +128,13 @@ def series(symbol, feedname=None, feedkeyname=None, column=None):
 
 def query(querystr):
     r = requests.request("POST", query_url, headers=headers_csv, data=querystr, auth=auth)
-    df = pd.read_csv(io.StringIO(r.text), header=None)
-    df = df.set_index(0)
-    df.index = pd.to_datetime(df.index)
-    return df
+    if r.status_code == 200 and r.text != '':
+        df = pd.read_csv(io.StringIO(r.text), header=None)
+        df = df.set_index(0)
+        df.index = pd.to_datetime(df.index)
+        return df
+    else:
+        logging.warning('Response: {} {}'.format(r.status_code, r.text))
 
 
 def curve(symbol, feedname=None, feedkeyname=None, column='Settlement_Price', curvedate='today()'):

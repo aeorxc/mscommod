@@ -31,6 +31,33 @@ class TestMP(unittest.TestCase):
         res = mp.query(q)
         self.assertEqual(type(res.index), pd.core.indexes.datetimes.DatetimeIndex)
 
+    def test_query_fail(self):
+        q = """
+        var $Source = morn.Product.create("CME_NymexFutures_FAKE", ["NGFAKE"], ["Settlement_Price"] );
+        var Source = forward_curve($Source, get_curve_date($Source, today()), "Month");
+        Source = drop_nans(Source);
+        """
+        res = mp.query(q)
+        self.assertEqual(res, None)
+
+    def test_query1(self):
+        q = """
+    var $TIME_ZONE = TimeZone.get('Europe/London');
+    var $RUN_DATE = "2020-02-10";
+    var $TODAY = today($TIME_ZONE);
+    var $NOW = now($TIME_ZONE);
+    var $FP = morn.Product.create('ICE_EuroFutures', ['G'], 'Settlement_Price');
+    var $Brent = morn.Product.create('ICE_EuroFutures', ['BRN'], 'Settlement_Price');
+    var Brent = forward_curve($Brent, $RUN_DATE, "month");
+    Brent = drop_nans(Brent);
+    var GasOil = forward_curve($FP, $RUN_DATE, "month");
+    GasOil = drop_nans(GasOil);
+    var Crack = cell_diff(cell_quotient(GasOil, 7.45), Brent);
+    as.csv(union(Crack));
+        """
+        res = mp.query(q)
+        self.assertEqual(type(res.index), pd.core.indexes.datetimes.DatetimeIndex)
+
     def test_getts1(self):
         res = mp.series('BRN-Q0F', 'ICE_EuroFutures')
         self.assertEqual(res.loc[pd.to_datetime('2017-03-31'),'settlement_price(BRN-Q0F)'], 53.32)
