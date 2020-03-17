@@ -6,7 +6,6 @@ from functools import lru_cache
 import logging
 from mscommod import symbolcache
 
-
 feed_url = 'https://mp.morningstarcommodity.com/lds/feeds/{}'
 ts_url = 'https://mp.morningstarcommodity.com/lds/feeds/{}/ts'
 curve_url = 'https://mp.morningstarcommodity.com/lds/feeds/{}/curve?'
@@ -82,10 +81,7 @@ def search(symbol):
 def _find_symbol_metadata(symbol, feedname=None, feedkeyname=None, inc_feeddata=False):
     # check in symbolcache first
     if feedname is None:
-        for feednamec in symbolcache.c:
-            if symbol in symbolcache.c[feednamec]:
-                feedname = feednamec
-                break
+        feedname = symbolcache.resolve_feedname(symbol)
 
     # if not in symbolcache then search
     if feedname is None:
@@ -104,7 +100,21 @@ def _find_symbol_metadata(symbol, feedname=None, feedkeyname=None, inc_feeddata=
     return feedname, feedkeyname
 
 
-def series(symbol, feedname=None, feedkeyname=None, column=None):
+def clean_column(df, column_type='symbol'):
+    """
+    Given a dataframe from MS, clean the column names
+    :param df:
+    :return:
+    """
+    if column_type == 'symbol':
+        df = df.rename(columns={x: x.split('(')[-1].replace(')', '') for x in df.columns})  # keep symbol name
+    else:
+        df = df.rename(columns={x: x.split('(')[0] for x in df.columns}) # keep settlement_price/close/high/low etc
+
+    return df
+
+
+def series(symbol, feedname=None, feedkeyname=None, column=None, clean_columns=None):
     feedname, feedkeyname = _find_symbol_metadata(symbol, feedname, feedkeyname)
     u = ts_url.format(feedname)
     if isinstance(feedkeyname, str):
@@ -121,6 +131,8 @@ def series(symbol, feedname=None, feedkeyname=None, column=None):
         df.index = pd.to_datetime(df.index)
         df = df.sort_index()
         df = df.dropna(how='all')
+        if clean_columns:
+            df = clean_column(df, clean_columns)
         return df
     else:
         logging.warning(r.text)

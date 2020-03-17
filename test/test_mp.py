@@ -22,6 +22,11 @@ class TestMP(unittest.TestCase):
         self.assertEqual(len(res['results']), 1)
         self.assertEqual(res['results'][0]['feed'], 'Platts_AE')
 
+    def test_search2(self):
+        res = mp.search('BRN_001_Month')
+        self.assertEqual(len(res['results']), 2)
+        self.assertEqual(res['results'][0]['feed'], 'ICE_EuroFutures_continuous')
+
     def test_query(self):
         q = """
         var $Source = morn.Product.create("CME_NymexFutures_EOD", ["NG"], ["Settlement_Price"] );
@@ -58,6 +63,10 @@ class TestMP(unittest.TestCase):
         res = mp.query(q)
         self.assertEqual(type(res.index), pd.core.indexes.datetimes.DatetimeIndex)
 
+    def test_clean_column(self):
+        res = mp.series('BRN-Q0F', 'ICE_EuroFutures', clean_columns='symbol')
+        self.assertEqual(res.columns[0], 'BRN-Q0F')
+
     def test_getts1(self):
         res = mp.series('BRN-Q0F', 'ICE_EuroFutures')
         self.assertEqual(res.loc[pd.to_datetime('2017-03-31'),'settlement_price(BRN-Q0F)'], 53.32)
@@ -69,6 +78,10 @@ class TestMP(unittest.TestCase):
     def test_getts1b(self):
         res = mp.series('BRN_001_Month', 'ICE_EuroFutures_continuous', column='settlement_price')
         self.assertEqual(res.loc[pd.to_datetime('2020-01-02'),'settlement_price(BRN_001_Month)'], 66.25)
+
+    def test_getts1c(self):
+        res = mp.series('CL_001_Month', column='settlement_price')
+        self.assertEqual(res.loc[pd.to_datetime('2020-01-02'),'settlement_price(CL_001_MONTH)'], 61.18)
 
     def test_getts2(self):
         res = mp.series('PJABA00', 'Platts_EB', feedkeyname='Code')
