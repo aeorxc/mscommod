@@ -521,7 +521,7 @@ c = {
 @lru_cache(maxsize=None)
 def isContinuous(symbol):
   r = re.findall('\d\d\d_M', symbol)
-  if len(r) >= 0:
+  if len(r) >= 1:
     return True
 
 
