@@ -8,7 +8,7 @@ mpPassword = os.environ['MPPASSWORD'].replace('"', '')
 
 
 def run():
-    u = 'https://mp.morningstarcommodity.com/lds/users/gibran.afzal@rwe.com/feeds'
+    u = 'https://mp.morningstarcommodity.com/lds/users/{}/feeds'.format(mpUserName
     r = requests.get(u, auth=requests.auth.HTTPBasicAuth(mpUserName, mpPassword))
     feeds = pd.DataFrame(r.json())
 
