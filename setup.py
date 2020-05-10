@@ -24,7 +24,7 @@ setup(
     test_suite='tests',
     url='',
     license='MIT',
-    author='Gibran',
+    author='aeorxc',
     author_email='',
     description='wrapper morning star market place',
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
